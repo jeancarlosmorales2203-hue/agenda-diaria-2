@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Agenda Diaria</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#111827">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+  body{
+    font-family: Arial;
+    background:#f3f4f6;
+    padding:15px;
+  }
+
+  h1{margin-bottom:10px}
+
+  table{
+    border-collapse:collapse;
+    width:100%;
+    background:white;
+    font-size:14px;
+  }
+
+  th,td{
+    border:1px solid #ddd;
+    padding:5px;
+    text-align:center;
+  }
+
+  th{background:#e5e7eb}
+
+  input,select{
+    width:100%;
+    border:none;
+    background:transparent;
+  }
+
+  .done{
+    background:#d1fae5;
+  }
+
+  .top{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  button{
+    padding:6px 10px;
+    cursor:pointer;
+  }
+  </style>
+</head>
+
+
+<body>
+
+<h1>📊 Agenda Operativa</h1>
+
+<div class="top">
+  <b>Total: <span id="total">0</span></b>
+  <b>Completadas: <span id="done">0</span></b>
+  <b>Pendientes: <span id="pending">0</span></b>
+
+  <button onclick="guardar()">💾 Guardar</button>
+  <button onclick="exportar()">⬇ Excel</button>
+  <button onclick="limpiar()">🗑 Reset</button>
+</div>
+
+<table id="tabla">
+<thead>
+<tr>
+<th>Hora</th>
+<th>Actividad</th>
+<th>Categoría</th>
+<th>Prioridad</th>
+<th>Estado</th>
+<th>Notas</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<script>
+const tbody=document.querySelector("tbody");
+
+function horas(){
+ let arr=[];
+ for(let h=7;h<=21;h++){
+  let suf=h>=12?"PM":"AM";
+  let hr=h>12?h-12:h;
+  arr.push(`${hr}:00 ${suf}`);
+  if(h!=21) arr.push(`${hr}:30 ${suf}`);
+ }
+ return arr;
+}
+
+function fila(h){
+ const tr=document.createElement("tr");
+ tr.innerHTML=`
+ <td>${h}</td>
+ <td><input oninput="actualizar()"></td>
+ <td><input></td>
+ <td>
+  <select>
+   <option></option>
+   <option>Alta</option>
+   <option>Media</option>
+   <option>Baja</option>
+  </select>
+ </td>
+ <td>
+  <select onchange="actualizar()">
+   <option>Pendiente</option>
+   <option>En proceso</option>
+   <option>Completado</option>
+  </select>
+ </td>
+ <td><input></td>
+ `;
+ tbody.appendChild(tr);
+}
+
+horas().forEach(fila);
+
+function actualizar(){
+ let rows=[...tbody.rows];
+ let t=0,d=0,p=0;
+
+ rows.forEach(r=>{
+  let act=r.cells[1].firstChild.value;
+  let est=r.cells[4].firstChild.value;
+
+  if(act.trim()!=""){
+   t++;
+   if(est=="Completado"){
+    d++;
+    r.classList.add("done");
+   }else{
+    p++;
+    r.classList.remove("done");
+   }
+  }
+ });
+
+ total.innerText=t;
+ done.innerText=d;
+ pending.innerText=p;
+}
+
+function guardar(){
+ localStorage.setItem("agenda",tbody.innerHTML);
+}
+
+function cargar(){
+ let d=localStorage.getItem("agenda");
+ if(d) tbody.innerHTML=d;
+ actualizar();
+}
+
+function limpiar(){
+ localStorage.clear();
+ location.reload();
+}
+
+function exportar(){
+ let rows=[...tbody.rows];
+ let csv="Hora,Actividad,Categoria,Prioridad,Estado,Notas\n";
+
+ rows.forEach(r=>{
+  let vals=[...r.cells].map(c=>c.innerText||c.firstChild.value);
+  csv+=vals.join(",")+"\n";
+ });
+
+ let blob=new Blob([csv]);
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="agenda.csv";
+ a.click();
+}
+
+cargar();
+
+/* Service Worker */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
